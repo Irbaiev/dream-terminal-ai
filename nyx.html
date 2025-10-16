@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>somniaterminal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0e0f10; --panel:#111315; --panel-2:#0d0f11; --border:#1b1f22;
+      --green:#7AF77B; --green-soft:#a2f1a3; --green-dim:#7af77b88; --green-strong:#c8ffd1;
+    }
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--green);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .wrap{max-width:1000px;margin:40px auto;padding:0 20px}
+    .term{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+    .titlebar{background:linear-gradient(#141619,#0f1113);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:10px 14px}
+    .dots{display:flex;gap:8px}
+    .dot{width:12px;height:12px;border-radius:50%}
+    .red{background:#ff5f57}.yellow{background:#febc2e}.green{background:#28c840}
+    .tabs{display:flex;gap:18px;align-items:center}
+    .tab{padding:6px 12px;border-radius:8px;color:var(--green-soft);background:transparent;border:1px solid transparent;cursor:pointer}
+    .tab.active{background:rgba(122,247,123,.1);border-color:rgba(122,247,123,.25);color:var(--green-strong)}
+    .clock{color:#98f5a0;font-weight:600}
+    .screen{background:var(--panel-2);padding:20px 22px 28px;min-height:60vh}
+    .muted{color:var(--green-dim)}
+    .log-item{border:1px solid var(--border);border-radius:10px;padding:12px}
+    .art{white-space:pre;line-height:1.05;color:#a6ffb1}
+    @keyframes blink{50%{opacity:0}} .cursor{animation:blink 1s step-end infinite}
+    .glow{text-shadow:0 0 6px rgba(16,255,16,.6)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="term">
+      <div class="titlebar">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <div class="tabs">
+            <button id="tab-today" class="tab active" type="button">Today</button>
+            <button id="tab-log"   class="tab" type="button">My Dreams</button>
+            <button id="tab-info"  class="tab" type="button">Info</button>
+          </div>
+        </div>
+        <div id="clock" class="clock">--:--</div>
+      </div>
+
+      <div class="screen">
+        <div id="last-login" class="muted" style="margin-bottom:16px">Last login: …</div>
+
+        <!-- TODAY -->
+        <div id="view-today">
+          <div class="glow">somniaterminal@dreaming:~$</div>
+          <div class="glow" style="margin-top:8px">
+            <span>dream:~$ </span><span id="type-line"></span><span class="cursor">▌</span>
+          </div>
+          <pre id="ascii-live" class="art" style="margin-top:16px;display:none"></pre>
+        </div>
+
+        <!-- LOG -->
+        <div id="view-log" style="display:none">
+          <div id="log-empty" class="muted">(empty) Wait for the first dream to finish…</div>
+          <div id="log-list" style="display:none;display:grid;gap:12px;margin-top:6px"></div>
+        </div>
+
+        <!-- INFO -->
+        <div id="view-info" style="display:none" class="muted">
+          <p>One sentence at a time: type → hold (4s) → erase. After the last sentence: fast ASCII. Only then it appears in “My Dreams”.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрипт в самом конце body -->
+  <script src="./somnia-terminal.js"></script>
+</body>
+</html>

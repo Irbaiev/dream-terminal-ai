@@ -1,0 +1,35 @@
+{
+  "name": "somnia-terminal",
+  "version": "1.0.0",
+  "description": "A terminal-style dream interface with synchronized global timeline",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx live-server --port=3000 --open=/index.html",
+    "build": "echo 'Static build - no build step needed'",
+    "serve": "npx serve . -p 3000"
+  },
+  "keywords": [
+    "dreams",
+    "terminal",
+    "react",
+    "somnia",
+    "dream-interface",
+    "ascii-art",
+    "glitch"
+  ],
+  "author": "Somnia Terminal",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/somnia-terminal.git"
+  },
+  "homepage": "https://your-username.github.io/somnia-terminal",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
