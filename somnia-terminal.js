@@ -48,21 +48,22 @@ const loggedDreams = new Set(); // какие сны уже отправили �
 let lastLoggedIdx = -1;
 let lastProcessedSegment = null; // отслеживание последнего обработанного сегмента для предотвращения дублей
 
-// === PERSISTENCE (локальное хранилище) ===
+// === PERSISTENCE (локальное хранилище + синхронизация с сервером) ===
 const LS_KEY = 'somnia_log_v1';
+const API_ENDPOINT = '/api/dreams-simple'; // Можно изменить на полный URL если нужно
 
 // безопасный JSON.parse
 function parseJSONSafe(s, fallback) {
   try { return JSON.parse(s); } catch{ return fallback; }
 }
 
-// загружаем сохранённые карточки
+// загружаем сохранённые карточки из localStorage
 function loadPersistedLog(){
   const arr = parseJSONSafe(localStorage.getItem(LS_KEY), []);
   return Array.isArray(arr) ? arr : [];
 }
 
-// сохраняем с учетом автоочистки или максимального лимита
+// сохраняем локально с учетом автоочистки или максимального лимита
 function savePersistedLog(items){
   let trimmed;
   
@@ -85,6 +86,63 @@ function savePersistedLog(items){
   localStorage.setItem(LS_KEY, JSON.stringify(trimmed));
 }
 
+// ========================================
+// 🌐 СИНХРОНИЗАЦИЯ С СЕРВЕРОМ
+// ========================================
+
+// Загрузка снов с сервера при запуске
+async function loadDreamsFromServer(){
+  try {
+    console.log('🌐 Загрузка снов с сервера...');
+    const response = await fetch(API_ENDPOINT, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Загружено с сервера:', data.dreams?.length || 0, 'снов');
+      
+      if (data.dreams && data.dreams.length > 0) {
+        // Сохраняем в localStorage
+        savePersistedLog(data.dreams);
+        return data.dreams;
+      }
+    } else {
+      console.log('⚠️ Не удалось загрузить с сервера, используем локальные данные');
+    }
+  } catch (error) {
+    console.log('⚠️ Ошибка при загрузке с сервера:', error.message);
+  }
+  
+  // Возвращаем локальные данные если сервер недоступен
+  return loadPersistedLog();
+}
+
+// Сохранение сна на сервер
+async function saveDreamToServer(entry){
+  try {
+    console.log('🌐 Сохранение сна на сервер...', entry.id);
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Сон сохранен на сервере:', result);
+      return result.saved;
+    } else {
+      console.log('⚠️ Не удалось сохранить на сервер');
+      return false;
+    }
+  } catch (error) {
+    console.log('⚠️ Ошибка при сохранении на сервер:', error.message);
+    return false;
+  }
+}
+
 // проверка на дубликат (по id, а если нет id — по тексту+ascii)
 function isAlreadyPersisted(entry){
   const items = loadPersistedLog();
@@ -100,8 +158,8 @@ function isAlreadyPersisted(entry){
   return found;
 }
 
-// добавление в персистентный лог
-function persistEntry(entry){
+// добавление в персистентный лог (локально + на сервер)
+async function persistEntry(entry){
   console.log('💾 persistEntry вызван для:', entry.id);
   if (isAlreadyPersisted(entry)) {
     console.log('⚠️ Запись уже существует, не сохраняем');
@@ -115,15 +173,25 @@ function persistEntry(entry){
     ts: Date.now()
   };
   items.push(newEntry);
+  
+  // Сохраняем локально
   savePersistedLog(items);
   console.log('✅ Запись сохранена в localStorage. Всего записей:', items.length);
+  
+  // Сохраняем на сервер (асинхронно, не блокируем UI)
+  saveDreamToServer(newEntry).catch(err => {
+    console.log('⚠️ Не удалось синхронизировать с сервером:', err);
+  });
+  
   return true;
 }
 
 // первичный рендер сохранённых карточек
-function renderPersistedLog(){
-  const items = loadPersistedLog();
-  console.log('📋 renderPersistedLog: Загружено из localStorage:', items.length, 'записей');
+async function renderPersistedLog(){
+  // Сначала пытаемся загрузить с сервера
+  const items = await loadDreamsFromServer();
+  
+  console.log('📋 renderPersistedLog: Загружено записей:', items.length);
   if (!items.length){
     console.log('📋 Список пуст, показываем placeholder');
     if (logList) logList.style.display = 'none';
@@ -389,10 +457,10 @@ function loop(){
 }
 
 // === BOOT ===
-(function boot(){
+(async function boot(){
   setTab('today');
-  // сначала отрисуем то, что уже было сохранено ранее
-  renderPersistedLog();
+  // сначала отрисуем то, что уже было сохранено ранее (загружаем с сервера)
+  await renderPersistedLog();
   // первичная сборка по FALLBACK, чтобы всё сразу крутилось
   buildSegments();
   loop();
